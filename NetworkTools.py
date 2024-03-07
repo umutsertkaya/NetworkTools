@@ -4,12 +4,12 @@ import nmap
 
 
 try:
-    def ping_sorgu(hedefip):
+    def ping_query(targetip):
         ip = IP()
         icmp = ICMP()
         on_ip = []
         for i in range(1,256):
-            ip.dst = hedefip+f"{i}"
+            ip.dst = targetip+f"{i}"
             pak = ip/icmp
             ans= sr1(pak, timeout = 0.5, verbose = False)
             print(pak[IP].dst," : scanned")
@@ -19,13 +19,13 @@ try:
                 pass
 
         for a in on_ip:
-            print(a,"aktif cihaz...")
+            print(a,"active device...")
 
-    def arp_sorgu(arp_hedef):
+    def arp_query(arp_target):
         eth = Ether()
         arp = ARP()
         eth.dst = "ff:ff:ff:ff:ff:ff"
-        arp.pdst = arp_hedef
+        arp.pdst = arp_target
         arp_pak = eth/arp
         cev,uncev = srp(arp_pak, timeout=5)
         for re, unre in cev:
@@ -33,15 +33,15 @@ try:
 
         
                 
-    def port_tarama(hedefi, hedef_portlar):
+    def port_scanner(targeti, target_ports):
         try:
-            if "-" in hedef_portlar:
-                bas_port, son_port = map(int, hedef_portlar.split("-"))
-                for port in range(bas_port, son_port + 1):
-                    port_paket = IP(dst=hedefi) / TCP(dport=port, flags="S")
-                    cevap, _ = sr(port_paket, timeout=5)
+            if "-" in target_ports:
+                first_port, last_port = map(int, target_ports.split("-"))
+                for port in range(first_port, last_port + 1):
+                    port_packet = IP(dst=targeti) / TCP(dport=port, flags="S")
+                    response, _ = sr(port_packet, timeout=5)
 
-                    for send, recv in cevap:
+                    for send, recv in response:
                         if recv.haslayer(TCP) and recv.getlayer(TCP).flags == 0x12:
                             print(f"{send.dport} : Open - Service: {recv.sprintf('%TCP.payload%')}")
                         else:
@@ -51,18 +51,18 @@ try:
                 print("Please enter a port range...")
                 
 
-        except Exception as hata2:
+        except Exception as error2:
             print("We encountered an error...")
 
-    def nmap_ports(nmap_hedef_ip, nmap_hedef_portlar):
+    def nmap_ports(nmap_target_ip, nmap_target_ports):
         try:
             nmp = nmap.PortScanner()
-            nmp.scan(nmap_hedef_ip, nmap_hedef_portlar)
-            for nmport in nmp[nmap_hedef_ip]["tcp"]:
-                if nmp[nmap_hedef_ip]["tcp"][nmport]["state"] == "open":
-                    print(f"{nmport} : Open - Services : {nmp[nmap_hedef_ip]['tcp'][nmport]['name']}")
-        except Exception as nmap_hata:
-            print(nmap_hata)
+            nmp.scan(nmap_target_ip, nmap_target_ports)
+            for nmport in nmp[nmap_target_ip]["tcp"]:
+                if nmp[nmap_target_ip]["tcp"][nmport]["state"] == "open":
+                    print(f"{nmport} : Open - Services : {nmp[nmap_target_ip]['tcp'][nmport]['name']}")
+        except Exception as nmap_error:
+            print(nmap_error)
 
 
     if __name__ == "__main__":
@@ -72,23 +72,23 @@ try:
         parser.add_argument("--ip", type=str, help="Enter target IP block...")
         parser.add_argument("-p","--port", action="store_true", help="Port scan...")
     
-        parser.add_argument("portlar", type=str,nargs="?",help="Enter the target port range e.g. (0-80)...")
+        parser.add_argument("ports", type=str,nargs="?",help="Enter the target port range e.g. (0-80)...")
         parser.add_argument("--port_ip","-pi", type=str, help="The target ip for port scanning...")
         parser.add_argument("-np","--nmap_port", action="store_true", help="Detailed port scan with Nmap tool...")
         args = parser.parse_args()
 
         if args.ping:
-            hedef_ip = args.ip+"."
-            ping_sorgu(hedef_ip)
+            target_ip = args.ip+"."
+            ping_query(target_ip)
         elif args.arp:
-            arp_hedef_ip = args.ip + ".1/24"
-            arp_sorgu(arp_hedef_ip)
+            arp_target_ip = args.ip + ".1/24"
+            arp_query(arp_target_ip)
         elif args.port:
 
-            port_tarama(args.port_ip,args.portlar)
+            port_scanner(args.port_ip,args.ports)
 
         elif args.nmap_port:
-            nmap_ports(args.port_ip, args.portlar)
+            nmap_ports(args.port_ip, args.ports)
 
 except Exception as e :
     print("We encountered an error!...\n"+ "#"*100)
